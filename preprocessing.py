@@ -1,6 +1,7 @@
 import argparse
 import os
 
+from npy_append_array import NpyAppendArray
 import numpy as np
 import mne
 
@@ -62,29 +63,30 @@ for subset_i in subsets:
             #     raw = np.insert(raw, index, np.zeros(raw.shape[1]), axis=0)
 
             # Семплирование и разбиение
-            for i in range(int(data.shape[1] / step)):
-                data_i = data[:, i*step:(i + 1)*step]
+            os.makedirs(path_resampled, exist_ok=True)    
+            with NpyAppendArray(file_path_resampled.replace('.edf', '.npy'), delete_if_exists=True) as npaa:
+                  for i in range(int(data.shape[1] / step)):
+                    data_i = data[:, i*step:(i + 1)*step]
 
-                if data_i.shape[1] != step:
-                    continue
+                    if data_i.shape[1] != step:
+                        continue
 
-                if sfreq < sr:
-                    data_i = mne.filter.resample(data_i, up=sr/sfreq, down=1)
-                else:
-                    data_i = mne.filter.resample(data_i, up=1, down=sfreq/sr)
+                    if sfreq < sr:
+                        data_i = mne.filter.resample(data_i, up=sr/sfreq, down=1)
+                    else:
+                        data_i = mne.filter.resample(data_i, up=1, down=sfreq/sr)
 
-                # Сохранение в файл
-                # n_channels = len(top_chans)  # Количество каналов
-                # n_times = data_i.shape[1]  # Количество временных точек
-                # ch_names = top_chans
-                # ch_types = ['eeg'] * n_channels   # Типы каналов
+                    # Сохранение в файл
+                    # n_channels = len(top_chans)  # Количество каналов
+                    # n_times = data_i.shape[1]  # Количество временных точек
+                    # ch_names = top_chans
+                    # ch_types = ['eeg'] * n_channels   # Типы каналов
 
-                # info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-                # raw_to_save = mne.io.RawArray(data_i, info)
+                    # info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+                    # raw_to_save = mne.io.RawArray(data_i, info)
 
-                os.makedirs(path_resampled, exist_ok=True)    
-                np.save(file_path_resampled.replace('.edf', f'_{i + 1}'), data_i)
-                # mne.export.export_raw(file_path_resampled.replace('.edf', f'_{i + 1}.edf'),
-                #                       raw_to_save, 
-                #                       fmt='edf', 
-                #                       overwrite=True)
+                    npaa.append(np.expand_dims(data_i, axis=0))
+                    # mne.export.export_raw(file_path_resampled.replace('.edf', f'_{i + 1}.edf'),
+                    #                       raw_to_save, 
+                    #                       fmt='edf', 
+                    #                       overwrite=True)
