@@ -6,8 +6,8 @@ import mne
 
 parser = argparse.ArgumentParser(description="Template")
 
-parser.add_argument('-ed', '--eeg-dataset', default=r".\datasets\tuab", help="EEG dataset path")
-parser.add_argument('-tc', '--top-channels', default=r".\datasets\tuab\top_chans.txt", help="EEG top channels file")
+parser.add_argument('-ed', '--eeg-dataset', default=r"./datasets/tuab", help="EEG dataset path")
+parser.add_argument('-tc', '--top-channels', default=r"./datasets/tuab/top_chans.txt", help="EEG top channels file")
 parser.add_argument('-sr', '--sampling-rate', default=500, type=int, help="Sampling rate")
 parser.add_argument('-d', '--duration', default=0.5, type=float, help="Duration")
 
@@ -34,15 +34,15 @@ end_index = -1000
 
 for subset_i in subsets:
     for class_i in classes:
-        path = opt.eeg_dataset + rf'\tuh_eeg_abnormal\v3.0.1\edf\{subset_i}\{class_i}\01_tcp_ar'
+        path = opt.eeg_dataset + rf'/tuh_eeg_abnormal/v3.0.1/edf/{subset_i}/{class_i}/01_tcp_ar'
         path_resampled = path.replace('tuab', 'tuab_resampled')
 
         for file_name in os.listdir(path):
             if file_name.split('.')[-1] != 'edf':
                 continue
 
-            file_path = path + '\\' + file_name
-            file_path_resampled = path_resampled + '\\' + file_name
+            file_path = path + '/' + file_name
+            file_path_resampled = path_resampled + '/' + file_name
 
             raw = mne.io.read_raw_edf(file_path, verbose=False, preload=True)
             raw.filter(l_freq=low_freq, h_freq=high_freq, fir_design='firwin')
