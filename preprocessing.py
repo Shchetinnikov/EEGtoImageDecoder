@@ -14,14 +14,23 @@ parser.add_argument('-d', '--duration', default=0.5, type=float, help="Duration"
 opt, unknown = parser.parse_known_args()
 
 
-with open(opt.top_channels, 'r') as f:
-    top_chans = [line[:-1] for line in f.readlines()]
+# with open(opt.top_channels, 'r') as f:
+#     top_chans = [line[:-1] for line in f.readlines()]
+top_chans = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 
+             'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 
+             'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF',
+             'EEG T1-REF', 'EEG T2-REF']
 
 subsets = ['train', 'eval']
 classes = ['normal', 'abnormal']
 
-time = opt.duration
-sr = opt.sampling_rate
+low_freq, high_freq = 0.1, 75  # Границы полосового фильтра
+notch_freq = 50  # Частота сетевого фильтра
+time = opt.duration # Время сигнала
+sr = opt.sampling_rate # Целевая частота дискретизации сигнала
+ # Границы обрезки сигнала
+start_index = 10000
+end_index = -1000 
 
 for subset_i in subsets:
     for class_i in classes:
@@ -35,40 +44,46 @@ for subset_i in subsets:
             file_path = path + '\\' + file_name
             file_path_resampled = path_resampled + '\\' + file_name
 
-            data = mne.io.read_raw_edf(file_path, verbose=False)
-            ch_names = data.info.ch_names
-            sfreq = data.info["sfreq"]
+            raw = mne.io.read_raw_edf(file_path, verbose=False, preload=True)
+            raw.filter(l_freq=low_freq, h_freq=high_freq, fir_design='firwin')
+            raw.notch_filter(freqs=notch_freq, fir_design='firwin')
+            
+            ch_names = raw.info.ch_names
+            sfreq = raw.info["sfreq"]
             step = int(sfreq * time)
 
             # Находим каналы
             indices = [index for index, element in enumerate(ch_names) if element in top_chans]
-            raw = data.get_data()[indices, :]
+            data = raw.get_data()[indices, start_index:end_index]
 
             # Заполняем недостающие каналы
-            indices = [index for index, element in enumerate(top_chans) if element not in ch_names]
-            for index in indices:
-                raw = np.insert(raw, index, np.zeros(raw.shape[1]), axis=0)
+            # indices = [index for index, element in enumerate(top_chans) if element not in ch_names]
+            # for index in indices:
+            #     raw = np.insert(raw, index, np.zeros(raw.shape[1]), axis=0)
 
             # Семплирование и разбиение
-            for i in range(int(raw.shape[1] / step)):
-                raw_i = raw[:, i*step:(i + 1)*step]
+            for i in range(int(data.shape[1] / step)):
+                data_i = data[:, i*step:(i + 1)*step]
 
-                if raw_i.shape[1] != step:
+                if data_i.shape[1] != step:
                     continue
 
                 if sfreq < sr:
-                    raw_i = mne.filter.resample(raw_i, up=sr/sfreq, down=1)
+                    data_i = mne.filter.resample(data_i, up=sr/sfreq, down=1)
                 else:
-                    raw_i = mne.filter.resample(raw_i, up=1, down=sfreq/sr)
+                    data_i = mne.filter.resample(data_i, up=1, down=sfreq/sr)
 
                 # Сохранение в файл
                 n_channels = len(top_chans)  # Количество каналов
-                n_times = raw_i.shape[1]  # Количество временных точек
+                n_times = data_i.shape[1]  # Количество временных точек
                 ch_names = top_chans
                 ch_types = ['eeg'] * n_channels   # Типы каналов
 
                 info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-                raw_to_save = mne.io.RawArray(raw_i, info)
+                raw_to_save = mne.io.RawArray(data_i, info)
 
                 os.makedirs(path_resampled, exist_ok=True)    
-                mne.export.export_raw('.'.join(file_path_resampled.split('.')[:-1]) + f'_{i + 1}' + '.edf', raw_to_save, fmt='edf', overwrite=True)
+                mne.export.export_raw(file_path_resampled.replace('.edf', f'_{i + 1}.edf'),
+                                      raw_to_save, 
+                                      fmt='edf', 
+                                      overwrite=True)
