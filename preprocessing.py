@@ -53,7 +53,7 @@ for subset_i in subsets:
             step = int(sfreq * time)
 
             # Находим каналы
-            indices = [index for index, element in enumerate(ch_names) if element in top_chans]
+            indices = [ch_names.index(chan) for chan in top_chans]
             data = raw.get_data()[indices, start_index:end_index]
 
             # Заполняем недостающие каналы
@@ -74,16 +74,17 @@ for subset_i in subsets:
                     data_i = mne.filter.resample(data_i, up=1, down=sfreq/sr)
 
                 # Сохранение в файл
-                n_channels = len(top_chans)  # Количество каналов
-                n_times = data_i.shape[1]  # Количество временных точек
-                ch_names = top_chans
-                ch_types = ['eeg'] * n_channels   # Типы каналов
+                # n_channels = len(top_chans)  # Количество каналов
+                # n_times = data_i.shape[1]  # Количество временных точек
+                # ch_names = top_chans
+                # ch_types = ['eeg'] * n_channels   # Типы каналов
 
-                info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
-                raw_to_save = mne.io.RawArray(data_i, info)
+                # info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
+                # raw_to_save = mne.io.RawArray(data_i, info)
 
                 os.makedirs(path_resampled, exist_ok=True)    
-                mne.export.export_raw(file_path_resampled.replace('.edf', f'_{i + 1}.edf'),
-                                      raw_to_save, 
-                                      fmt='edf', 
-                                      overwrite=True)
+                np.save(file_path_resampled.replace('.edf', f'_{i + 1}'), data_i)
+                # mne.export.export_raw(file_path_resampled.replace('.edf', f'_{i + 1}.edf'),
+                #                       raw_to_save, 
+                #                       fmt='edf', 
+                #                       overwrite=True)
