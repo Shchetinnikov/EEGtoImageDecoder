@@ -17,18 +17,19 @@ opt, unknown = parser.parse_known_args()
 
 # with open(opt.top_channels, 'r') as f:
 #     top_chans = [line[:-1] for line in f.readlines()]
-top_chans = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF', 
-             'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF', 
-             'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF',
+top_chans = ['EEG FP1-REF', 'EEG FP2-REF', 'EEG F3-REF', 'EEG F4-REF', 'EEG C3-REF', 'EEG C4-REF', 'EEG P3-REF',
+             'EEG P4-REF', 'EEG O1-REF', 'EEG O2-REF', 'EEG F7-REF', 'EEG F8-REF', 'EEG T3-REF', 'EEG T4-REF',
+             'EEG T5-REF', 'EEG T6-REF', 'EEG A1-REF', 'EEG A2-REF', 'EEG FZ-REF', 'EEG CZ-REF', 'EEG PZ-REF', 
              'EEG T1-REF', 'EEG T2-REF']
 
 subsets = ['train', 'eval']
 classes = ['normal', 'abnormal']
 
 low_freq, high_freq = 0.1, 75  # Границы полосового фильтра
-notch_freq = 50  # Частота сетевого фильтра
-time = opt.duration # Время сигнала
-sr = opt.sampling_rate # Целевая частота дискретизации сигнала
+notch_freq = 50                # Частота сетевого фильтра
+time = opt.duration            # Время сигнала
+sr = opt.sampling_rate         # Целевая частота дискретизации сигнала
+ 
  # Границы обрезки сигнала
 start_index = 10000
 end_index = -1000 
@@ -54,13 +55,13 @@ for subset_i in subsets:
             step = int(sfreq * time)
 
             # Находим каналы
-            indices = [ch_names.index(chan) for chan in top_chans]
+            indices = [index for index, element in enumerate(ch_names) if element in top_chans]
             data = raw.get_data()[indices, start_index:end_index]
 
             # Заполняем недостающие каналы
-            # indices = [index for index, element in enumerate(top_chans) if element not in ch_names]
-            # for index in indices:
-            #     raw = np.insert(raw, index, np.zeros(raw.shape[1]), axis=0)
+            indices = [index for index, element in enumerate(top_chans) if element not in ch_names]
+            for index in indices:
+                data = np.insert(data, index, np.zeros(data.shape[1]), axis=0)
 
             # Семплирование и разбиение
             os.makedirs(path_resampled, exist_ok=True)    
