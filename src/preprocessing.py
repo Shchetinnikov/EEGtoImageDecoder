@@ -9,8 +9,9 @@ parser = argparse.ArgumentParser(description="Template")
 
 parser.add_argument('-ed', '--eeg-dataset', default=r"./datasets/tuab", help="EEG dataset path")
 parser.add_argument('-tc', '--top-channels', default=r"./datasets/tuab/top_chans.txt", help="EEG top channels file")
-parser.add_argument('-sr', '--sampling-rate', default=500, type=int, help="Sampling rate")
+parser.add_argument('-sr', '--sampling-rate', default=506, type=int, help="Sampling rate")
 parser.add_argument('-d', '--duration', default=0.5, type=float, help="Duration")
+parser.add_argument('-ps', '--patch-size', default=11, type=float, help="Patch size")
 
 opt, unknown = parser.parse_known_args()
 
@@ -29,6 +30,7 @@ low_freq, high_freq = 0.1, 75  # Границы полосового фильт�
 notch_freq = 50                # Частота сетевого фильтра
 time = opt.duration            # Время сигнала
 sr = opt.sampling_rate         # Целевая частота дискретизации сигнала
+patch_size = opt.patch_size    # Размер патча в AutoEncoder
  
  # Границы обрезки сигнала
 start_index = 10000
@@ -65,8 +67,8 @@ for subset_i in subsets:
 
             # Семплирование и разбиение
             os.makedirs(path_resampled, exist_ok=True)    
-            with NpyAppendArray(file_path_resampled.replace('.edf', '.npy'), delete_if_exists=True) as npaa:
-                  for i in range(int(data.shape[1] / step)):
+            for i in range(int(data.shape[1] / step)):
+                with NpyAppendArray(file_path_resampled.replace('.edf', f'_{i + 1}.npy'), delete_if_exists=True) as npaa:
                     data_i = data[:, i*step:(i + 1)*step]
 
                     if data_i.shape[1] != step:
@@ -86,7 +88,7 @@ for subset_i in subsets:
                     # info = mne.create_info(ch_names=ch_names, sfreq=sfreq, ch_types=ch_types)
                     # raw_to_save = mne.io.RawArray(data_i, info)
 
-                    npaa.append(np.expand_dims(data_i, axis=0))
+                    npaa.append(data_i)
                     # mne.export.export_raw(file_path_resampled.replace('.edf', f'_{i + 1}.edf'),
                     #                       raw_to_save, 
                     #                       fmt='edf', 
